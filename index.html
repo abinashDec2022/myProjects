@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ultimate Architectural Engine Pro</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="top-studio-bar">
+        <div class="brand">
+            <span class="logo-icon">📐</span>
+            <span class="logo-text">ARCH-ENGINE PRO</span>
+        </div>
+        
+        <div class="view-switcher">
+            <button id="mode-2d" class="switch-btn active" onclick="if(is3DMode) toggle3D()">2D PLAN</button>
+            <button id="mode-3d" class="switch-btn" onclick="if(!is3DMode) toggle3D()">3D VIEW</button>
+        </div>
+
+        <div class="floor-controls">
+            <div id="top-floor-tabs" class="floor-tabs-container">
+                </div>
+            <button class="add-floor-btn" onclick="addManualFloor()" title="Add Floor">+</button>
+        </div>
+    </div>
+
+<div class="sidebar">
+
+	<div class="panel" style="border-color: #38bdf8;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="color: #38bdf8; margin: 0;">WORKSPACE UI</h2>
+            <button class="action-btn" onclick="toggleSidebar()" title="Minimize Sidebar" style="border: none; color: #94a3b8; font-size: 1rem; padding: 2px 6px;">◀</button>
+        </div>
+        <div class="toggle-list">
+            <label class="ui-toggle">
+                <span>📐 Project Data</span>
+                <input type="checkbox" checked onchange="toggleWidget('area-overlay', this.checked)">
+                <div class="slider"></div>
+            </label>
+            <label class="ui-toggle">
+                <span>✨ Auto-Builder</span>
+                <input type="checkbox" checked onchange="toggleWidget('template-builder-overlay', this.checked)">
+                <div class="slider"></div>
+            </label>
+            <label class="ui-toggle">
+                <span>📷 Camera Controls</span>
+                <input type="checkbox" checked onchange="toggleWidget('camera-controls', this.checked)">
+                <div class="slider"></div>
+            </label>
+            <label class="ui-toggle">
+                <span>🧩 Smart-Merge Rooms</span>
+                <input type="checkbox" id="smartMergeToggle" onchange="updateCanvas()">
+                <div class="slider"></div>
+            </label>
+            <label class="ui-toggle">
+                <span>🏠 Real3D View</span>
+                <input type="checkbox" id="real3DToggle" onchange="if(typeof is3DMode !== 'undefined' && is3DMode) generate3DModel()">
+                <div class="slider"></div>
+            </label>
+            <label class="ui-toggle">
+                <span>🏗️ Show Columns</span>
+                <input type="checkbox" id="showColsToggle" onchange="updateCanvas()">
+                <div class="slider"></div>
+            </label>
+        </div>
+    </div>
+
+
+
+	<div class="panel">
+        <h2>BUILDING & PLOT</h2>
+        <div class="input-grid">
+            <div class="field"><label>Width:</label><input type="number" id="inW" value="272" oninput="updateCanvas()"></div>
+            <div class="field"><label>Depth:</label><input type="number" id="inH" value="400" oninput="updateCanvas()"></div>
+            
+			<div class="field" style="grid-column: span 2;">
+				<label>Main Road Placement:</label>
+				<select id="roadSide" onchange="updateCanvas()">
+					<option value="south">⬇ South (Bottom Edge)</option>
+					<option value="north">⬆ North (Top Edge)</option>
+					<option value="east">➡ East (Right Edge)</option>
+					<option value="west">⬅ West (Left Edge)</option>
+					<option value="none">None</option>
+				</select>
+			</div>
+
+            <div class="field"><label>A(L/U):</label><input type="number" id="aL" value="26" oninput="updateCanvas()">
+				<input type="number" id="aU" value="28" oninput="updateCanvas()"></div>
+            <div class="field"><label>B(R/U):</label><input type="number" id="bR" value="75" oninput="updateCanvas()">
+				<input type="number" id="bU" value="35" oninput="updateCanvas()"></div>
+            <div class="field"><label>C(R/D):</label><input type="number" id="cR" value="22" oninput="updateCanvas()">
+				<input type="number" id="cD" value="33" oninput="updateCanvas()"></div>
+            <div class="field"><label>D(L/D):</label><input type="number" id="dL" value="51" oninput="updateCanvas()">
+				<input type="number" id="dD" value="41" oninput="updateCanvas()"></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>FLOORS & DATA</h2>
+		<div class="input-grid" style="margin-top: 8px;">
+            <div class="field" style="grid-column: span 2;">
+                <div class="field" style="margin-left:0px; margin-top: 20px;">
+                    <label>Show Dimensions</label>
+                    <input type="checkbox" id="showDims" onchange="updateCanvas()" checked>
+                </div>
+            </div>
+        </div>
+        
+        <div style="display:flex; align-items:center; gap: 8px; margin-bottom:10px;">
+
+        <div id="floor-tabs" style="display:flex; flex-wrap: wrap; gap:5px; margin-bottom:10px;">
+            <button class="floor-btn active" data-floor="0" onclick="setFloor(0)">G</button>
+        </div>
+            <button class="action-btn" onclick="addManualFloor()" title="Add New Floor" style="padding: 4px 8px; font-weight: bold; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px dashed #38bdf8;">
+                + ADD FLOOR
+            </button>
+        </div>
+        <div id="stair-warning">⚠ Staircases must match X, Y, Width, and Depth across floors!</div>
+        <div class="input-grid">
+            <div class="field"><button onclick="toggle3D()" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">👁️ Toggle 3D View</button></div>
+            <div class="field" style="margin-left:30px;"><label>Units:</label><select id="unitSelect" onchange="updateCanvas()"><option value="in">Inches</option><option value="cm">CM</option><option value="ftin">Ft & Inches</option></select></div>
+        </div>
+
+		<div class="input-grid">
+            <div class="field">
+				<button onclick="exportJSON()">💾 Export JSON</button>
+			</div>
+            <div class="field">
+				<button onclick="document.getElementById('importFile').click()">📂 Import JSON</button>
+			</div>
+        </div>        
+        
+        <input type="file" id="importFile" style="display:none" onchange="importJSON(event)">
+
+		<div class="input-grid" style="margin-top: 8px;">
+            <div class="field">
+                <button onclick="exportPNG()" style="background: linear-gradient(135deg, #8b5cf6, #c084fc); color: white;">🖼️ Export PNG</button>
+            </div>
+            <div class="field">
+                <button onclick="exportPDF()" style="background: linear-gradient(135deg, #f43f5e, #fb7185); color: white;">📄 Export PDF</button>
+            </div>
+        </div>
+
+        <div class="input-grid" style="margin-top:10px;">  
+            <div class="field"><label>Top Direction:</label><select id="compassDir" onchange="handleCompassChange()"><option>West</option><option>South</option><option>East</option><option>North</option></select></div>
+            <div class="field"><label>Scale:</label><input type="number" id="scaleInput" value="1.2" step="0.1" oninput="updateCanvas()"></div>
+        </div>
+        <p style="font-size: 0.65rem; color: #10b981; margin-top: 10px; font-weight: bold;">🖱️ Scroll to Zoom | Middle-Click to Pan</p>
+    </div>
+    
+    <div class="panel">
+        <h2>INTERIORS</h2>
+        <div class="input-grid">
+            <div class="field"  style="width: 75%;">
+                <select id="elem-type">
+                    <option value="living">Living Room</option>
+                    <option value="bedroom">Bedroom</option>
+                    <option value="toilet">Toilet</option>
+                    <option value="kitchen">Kitchen</option>
+                    <option value="puja">Puja Room</option>
+                    <option value="staircase">Staircase</option>
+					<option value="balcony">Balcony</option>
+                </select>
+            </div>
+            <div class="field" style="margin-top: -10px;width: 130%;margin-left:-25%">
+				<button onclick="addElement()">+ ADD ROOM</button>
+			</div>
+        </div>
+		<div class="input-grid" style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+            <div class="field" style="grid-column: span 2;"><label>Add to Selected Room:</label></div>
+            <div class="field"><button onclick="addFixture('door')" style="background: transparent; border: 1px dashed #fbbf24; color: #fbbf24;">🚪 Door</button></div>
+            <div class="field"><button onclick="addFixture('window')" style="background: transparent; border: 1px dashed #06b6d4; color: #06b6d4;">🪟 Window</button></div>
+        </div>
+
+        <div id="element-controls" style="margin-top:10px;"></div>
+    </div>
+</div>
+
+<div class="canvas-area" id="canvas-wrapper">
+	<button id="open-sidebar-btn" onclick="toggleSidebar()" title="Expand Sidebar">▶</button>
+
+    <div id="template-builder-overlay" class="glass-panel">
+		<div class="panel-header"><span class="icon">✨</span><h2>AUTO-BUILDER</h2></div>
+		
+		<div class="glass-field"><label>Total Floors:</label>
+			<div class="number-input-wrapper">
+				<input type="number" id="b-floors" value="1" min="1" max="10" oninput="renderFloorSelectors()">
+			</div>
+		</div>
+		<div id="floor-layout-selectors" class="layout-selectors"></div>
+		
+		<button class="btn-generate" onclick="generateBuilding()">
+			<span class="btn-icon">🏗️</span><span class="btn-text">GENERATE BUILDING</span>
+		</button>
+	</div>
+
+
+
+	<div id="camera-controls">
+		<div class="camera-header">CAMERA</div>
+		
+		<div></div>
+		<button class="action-btn dpad-btn" onclick="panCamera(0, 50)">▲</button>
+		<div></div>
+		<button class="action-btn dpad-btn" onclick="panCamera(50, 0)">◄</button>
+		<button class="action-btn dpad-btn" onclick="resetCamera()" title="Reset Camera" style="color: #38bdf8;">⚪</button>
+		<button class="action-btn dpad-btn" onclick="panCamera(-50, 0)">►</button>
+		<div></div>
+		<button class="action-btn dpad-btn" onclick="panCamera(0, -50)">▼</button>
+		<div></div>
+		
+		<button class="action-btn camera-zoom-btn" onclick="zoomCamera(1.2)">➕ Zoom In</button>
+		<button class="action-btn camera-zoom-btn" onclick="zoomCamera(0.8)">➖ Zoom Out</button>
+	</div>
+
+	<div id="area-overlay" class="glass-panel">
+        <div class="panel-header" style="margin-bottom: 15px; padding-bottom: 10px;">
+            <span class="icon">📐</span>
+            <h2>PROJECT DATA</h2>
+        </div>
+        
+        <div id="plot-area" class="stat-box plot-stat">Plot Area: 0</div>
+        <div id="build-area" class="stat-box build-stat">Build Area: 0</div>
+        
+		<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+            <label class="ui-toggle">
+                <span>📏 Show Site Offsets</span>
+                <input type="checkbox" id="showOffsetsToggle" onchange="updateCanvas()">
+                <div class="slider"></div>
+            </label>
+            <label class="ui-toggle" style="margin-top: 10px;">
+                <span>🔠 Show Plot Labels</span>
+                <input type="checkbox" id="showLabelsToggle" onchange="updateCanvas()" checked>
+                <div class="slider"></div>
+            </label>
+        </div>
+
+        <div class="calc-panel">
+            <label>📏 Quick Converter</label>
+            <div class="calc-row">
+                <input type="number" id="calcFt" placeholder="Feet" oninput="calcInches()">
+                <span>→</span>
+                <input type="text" id="resIn" placeholder="Inches" readonly>
+            </div>
+        </div>
+    </div>
+
+	<div id="three-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 35; background: #0f172a;"></div>
+    <div id="nav-pad" style="position: absolute; bottom: 20px; right: 20px; z-index: 100; display: none; grid-template-columns: 40px 40px 40px; gap: 5px;">
+        <div></div><button onclick="pan('up')">▲</button><div></div>
+        <button onclick="pan('left')">◀</button><button onclick="resetCamera3D()">●</button><button onclick="pan('right')">▶</button>
+        <div></div><button onclick="pan('down')">▼</button><div></div>
+    </div>
+    <svg id="blueprint" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
+        <defs>
+            <pattern id="smallGrid" width="12" height="12" patternUnits="userSpaceOnUse">
+                <path d="M 12 0 L 0 0 0 12" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/>
+            </pattern>
+            <pattern id="grid" width="120" height="120" patternUnits="userSpaceOnUse">
+                <rect width="120" height="120" fill="url(#smallGrid)"/>
+                <path d="M 120 0 L 0 0 0 120" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+            </pattern>
+            <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+        </defs>
+
+		<text id="dir-top" x="500" y="40" text-anchor="middle" fill="#38bdf8" style="font-weight:bold; font-size:20px;">N</text>
+		<text id="dir-right" x="960" y="500" text-anchor="middle" fill="#38bdf8" style="font-weight:bold; font-size:20px;">E</text>
+		
+		<g id="viewport">
+            <rect x="-50000" y="-50000" width="100000" height="100000" fill="url(#grid)" />
+
+			<polygon id="road-poly" fill="#334155" stroke="#94a3b8" stroke-width="2" stroke-dasharray="15,15" style="display:none;" />
+			<text id="road-text" fill="#f8fafc" font-size="16" font-weight="bold" letter-spacing="4" text-anchor="middle" style="display:none; text-shadow: 1px 1px 2px #000;">MAIN ACCESS ROAD</text>
+
+			<polygon id="outer-poly" class="outer-poly" />
+			<rect id="inner-rect" class="inner-rect" />
+			<g id="element-container"></g>
+			<g id="dim-container"></g>
+            <g id="site-offsets"></g>
+
+            </g>
+	</svg>
+
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
