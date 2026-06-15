@@ -216,6 +216,17 @@ svg.addEventListener('mousemove', (e) => {
             let newX = startElPos.x + (dx / SCALE);
             let newY = startElPos.y + (dy / SCALE);
             
+            // --- NEW: ORTHOGONAL DRAGGING (SHIFT + DRAG) ---
+            if (e.shiftKey) {
+                // Determine which direction the user moved more: horizontal or vertical
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    newY = startElPos.y; // Lock to horizontal movement
+                } else {
+                    newX = startElPos.x; // Lock to vertical movement
+                }
+            }
+            // -----------------------------------------------
+
             const SNAP = 12; const el = elements[dragElIndex];
             if (Math.abs(newX) < SNAP) newX = 0;
             if (Math.abs(newX + el.w - inW) < SNAP) newX = inW - el.w;
