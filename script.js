@@ -2055,6 +2055,11 @@ function resetWorkspace() {
     }
 }
 
+function toggleTheme() {
+    const isClassic = document.body.classList.toggle('classic-theme');
+    updateCanvas(); 
+}
+
 
 // Initialization
 initDOMCache();

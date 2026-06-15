@@ -107,6 +107,15 @@
                     <input type="checkbox" id="showDims" onchange="updateCanvas()" checked>
                 </div>
             </div>
+            
+            <div class="field" style="margin-left:0px;">
+                <label>Units:</label>
+                <select id="unitSelect" onchange="updateCanvas()">
+                    <option value="in">Inches</option>
+                    <option value="cm">CM</option>
+                    <option value="ftin">Ft & Inches</option>
+                </select>
+            </div>
         </div>
         
         <div style="display:flex; align-items:center; gap: 8px; margin-bottom:10px;">
@@ -121,7 +130,11 @@
         <div id="stair-warning">⚠ Staircases must match X, Y, Width, and Depth across floors!</div>
         <div class="input-grid">
             <div class="field"><button onclick="toggle3D()" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">👁️ Toggle 3D View</button></div>
-            <div class="field" style="margin-left:30px;"><label>Units:</label><select id="unitSelect" onchange="updateCanvas()"><option value="in">Inches</option><option value="cm">CM</option><option value="ftin">Ft & Inches</option></select></div>
+            
+            <div class="field">
+                <button onclick="toggleTheme()">🎨 Toggle Theme (Dark/Classic)</button>
+            </div>
+            
         </div>
 
 		<div class="input-grid">

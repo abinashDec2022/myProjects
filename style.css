@@ -973,7 +973,23 @@ button:active {
 }
 
 
+/* Dark Theme (Default) */
+:root {
+    --bg-color: #0f172a;
+    --line-color: #ffffff;
+    --text-color: #f8fafc;
+}
 
+/* Classic Blueprint Theme */
+.classic-theme {
+    --bg-color: #003399; /* Classic Blue */
+    --line-color: #ffffff;
+    --text-color: #ffffff;
+}
+
+#blueprint {
+    background-color: var(--bg-color);
+}
 
 
 
