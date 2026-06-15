@@ -403,13 +403,13 @@ function checkCollision(el, index) {
 }
 
 function addManualFloor() {
-    // 1. THE FIX: Find the highest floor by counting the actual UI tabs in the TOP BAR
+    // 1. Find the highest floor by counting the actual UI tabs
     const existingTabs = document.querySelectorAll('#top-floor-tabs .floor-btn');
     const maxFloor = existingTabs.length > 0 ? existingTabs.length - 1 : 0;
     
     const newFloorNum = maxFloor + 1;
 
-    // 2. SMART FEATURE: Auto-clone staircases from the top floor to the new floor
+    // 2. Auto-clone staircases from the top floor to the new floor
     const stairsToClone = elements.filter(e => e.type === 'staircase' && e.floor === maxFloor);
     stairsToClone.forEach(stair => {
         const clone = JSON.parse(JSON.stringify(stair));
@@ -417,18 +417,14 @@ function addManualFloor() {
         elements.push(clone);
     });
 
-    // 3. Generate the new tab button in the UI (Using top-floor-tabs!)
-    const tabsContainer = document.getElementById('top-floor-tabs');
-    
-    let label = newFloorNum === 1 ? "1st" : newFloorNum === 2 ? "2nd" : newFloorNum === 3 ? "3rd" : `${newFloorNum}th`;
-    
-    tabsContainer.innerHTML += `<button class="floor-btn" data-floor="${newFloorNum}" onclick="setFloor(${newFloorNum})">${label}</button>`;
-
-    // 4. Update the Auto-Builder's hidden floor counter so they stay in sync
+    // 3. Update the Auto-Builder's hidden floor counter
     const bFloorsInput = document.getElementById('b-floors');
     if (bFloorsInput) {
         bFloorsInput.value = newFloorNum + 1; 
     }
+
+    // 4. THE FIX: Tell the engine to dynamically redraw BOTH the dropdowns and the top tabs!
+    renderFloorSelectors();
 
     // 5. Instantly switch the user to their newly created floor
     setFloor(newFloorNum);
@@ -1041,11 +1037,100 @@ function updateCanvas() {
     if (typeof is3DMode !== 'undefined' && is3DMode) {
         generate3DModel();
     } 
+    saveToMemory();
 }
 
 // Data Management
-function exportJSON() { const data = JSON.stringify({ elements, building: { w: document.getElementById('inW').value, h: document.getElementById('inH').value }, floors: parseInt(document.getElementById('b-floors').value) }); const a = document.createElement('a'); a.href = 'data:application/json,' + encodeURIComponent(data); a.download = 'design.json'; a.click(); }
-function importJSON(event) { const reader = new FileReader(); reader.onload = (e) => { const data = JSON.parse(e.target.result); elements = data.elements; elements.forEach(el => { if (el.floor === undefined) el.floor = 0; }); document.getElementById('inW').value = data.building.w || 600; document.getElementById('inH').value = data.building.h || 700; if(data.floors) { document.getElementById('b-floors').value = data.floors; renderFloorSelectors(); } setFloor(0); }; reader.readAsText(event.target.files[0]); }
+// Data Management (Upgraded Save/Load)
+function exportJSON() { 
+    // 1. Ask the user for a filename
+    let fileName = prompt("Enter a name for your design:", "My-ArchCAD-Design");
+    
+    // If they click Cancel, stop the export
+    if (fileName === null) return; 
+    
+    // If they leave it blank, default to something safe
+    if (fileName.trim() === "") fileName = "My-ArchCAD-Design";
+    
+    // Auto-append .json if they forgot to type it
+    if (!fileName.endsWith('.json')) fileName += '.json';
+
+    // 2. Bundle all the data (including FIXTURES!)
+    const data = JSON.stringify({ 
+        elements: elements, 
+        fixtures: fixtures, // <-- Bug Fixed: Now saves doors/windows
+        building: { 
+            w: document.getElementById('inW').value, 
+            h: document.getElementById('inH').value 
+        }, 
+        floors: parseInt(document.getElementById('b-floors').value) 
+    }); 
+    
+    // 3. Trigger the download
+    const a = document.createElement('a'); 
+    a.href = 'data:application/json,' + encodeURIComponent(data); 
+    a.download = fileName; 
+    a.click(); 
+}
+
+// Data Management (Upgraded Save/Load funcationality)
+function importJSON(event) { 
+    const reader = new FileReader(); 
+    reader.onload = (e) => { 
+        const data = JSON.parse(e.target.result); 
+        
+        elements = data.elements || []; 
+        fixtures = data.fixtures || []; 
+        
+        // --- BULLETPROOF MULTI-FLOOR FIX ---
+        let maxFloor = 0;
+        elements.forEach(el => { 
+            if (el.floor === undefined) el.floor = 0; 
+            if (el.floor > maxFloor) maxFloor = el.floor;
+        }); 
+        
+        document.getElementById('inW').value = data.building.w || 600; 
+        document.getElementById('inH').value = data.building.h || 700; 
+        
+        const bFloorsInput = document.getElementById('b-floors');
+        if (bFloorsInput) {
+            // Pick whichever is higher: the saved count or the highest actual room
+            bFloorsInput.value = Math.max(maxFloor + 1, data.floors || 1); 
+        }
+
+        renderFloorSelectors(); 
+        setFloor(0); 
+    }; 
+    reader.readAsText(event.target.files[0]); 
+    
+    // Clear the input so you can load the exact same file again if you need to
+    event.target.value = '';
+}
+
+function importJSON(event) { 
+    const reader = new FileReader(); 
+    reader.onload = (e) => { 
+        const data = JSON.parse(e.target.result); 
+        
+        elements = data.elements || []; 
+        fixtures = data.fixtures || []; // <-- Bug Fixed: Now loads doors/windows
+        
+        elements.forEach(el => { if (el.floor === undefined) el.floor = 0; }); 
+        
+        document.getElementById('inW').value = data.building.w || 600; 
+        document.getElementById('inH').value = data.building.h || 700; 
+        
+        if(data.floors) { 
+            document.getElementById('b-floors').value = data.floors; 
+            renderFloorSelectors(); 
+        } 
+        setFloor(0); 
+    }; 
+    reader.readAsText(event.target.files[0]); 
+    
+    // Clear the input so you can load the exact same file again if you need to
+    event.target.value = '';
+}
 
 // Keyboard Control Engine (Nudge & Hotkeys)
 document.addEventListener('keydown', (e) => {
@@ -1757,8 +1842,90 @@ function rotateStaircase(index) {
     if (is3DMode) generate3DModel(); 
 }
 
+// =========================================
+// AUTO-SAVE ENGINE (Browser Memory)
+// =========================================
+function saveToMemory() {
+    const data = {
+        elements: elements,
+        fixtures: fixtures,
+        inW: document.getElementById('inW').value,
+        inH: document.getElementById('inH').value,
+        floors: document.getElementById('b-floors').value
+    };
+    localStorage.setItem('ArchCAD_AutoSave', JSON.stringify(data));
+}
+
+function loadFromMemory() {
+    const saved = localStorage.getItem('ArchCAD_AutoSave');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            if (data.elements && data.elements.length > 0) {
+                elements = data.elements;
+                fixtures = data.fixtures || [];
+                if (data.inW) document.getElementById('inW').value = data.inW;
+                if (data.inH) document.getElementById('inH').value = data.inH;
+                
+                // --- BULLETPROOF MULTI-FLOOR FIX ---
+                // Scan the saved memory to find the highest floor actually used
+                let maxFloor = 0;
+                elements.forEach(el => {
+                    if (el.floor > maxFloor) maxFloor = el.floor;
+                });
+
+                // Force the Auto-Builder input to match the actual floor count
+                const bFloorsInput = document.getElementById('b-floors');
+                if (bFloorsInput) {
+                    bFloorsInput.value = maxFloor + 1;
+                }
+            }
+        } catch (e) {
+            console.error("Auto-save load failed.", e);
+        }
+    }
+}
+
+// =========================================
+// RESET ENGINE
+// =========================================
+function resetWorkspace() {
+    // 1. Strong Confirmation Warning
+    if (confirm("⚠️ WARNING: This will completely erase your building and clear your saved memory. This cannot be undone.\n\nAre you sure you want to reset?")) {
+        
+        // 2. Clear all internal data arrays
+        elements = [];
+        fixtures = [];
+        currentFloor = 0;
+        
+        // 3. Reset Plot Dimensions to your original defaults
+        document.getElementById('inW').value = 272;
+        document.getElementById('inH').value = 400;
+        
+        // 4. Reset Floor Counts back to Ground Floor only
+        const bFloorsInput = document.getElementById('b-floors');
+        if (bFloorsInput) bFloorsInput.value = 1;
+        
+        // 5. THE MOST IMPORTANT PART: Nuke the browser's Auto-Save memory
+        localStorage.removeItem('ArchCAD_AutoSave');
+        
+        // 6. Reset the UI
+        renderFloorSelectors();
+        setFloor(0);
+        
+        // 7. Safety check: If they are in 3D mode, kick them back to 2D
+        if (typeof is3DMode !== 'undefined' && is3DMode) {
+            toggle3D();
+        }
+        
+        // 8. Force the canvas to redraw everything completely blank
+        updateCanvas();
+    }
+}
+
 
 // Initialization
 initDOMCache();
+loadFromMemory();
 renderFloorSelectors(); 
 updateCanvas();

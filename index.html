@@ -135,6 +135,12 @@
         
         <input type="file" id="importFile" style="display:none" onchange="importJSON(event)">
 
+        <div class="input-grid" style="margin-top: 8px;">
+            <div class="field" style="grid-column: span 2;">
+                <button onclick="resetWorkspace()" style="background: linear-gradient(135deg, #ef4444, #b91c1c); color: white;">⚠️ Reset Workspace</button>
+            </div>
+        </div>
+
 		<div class="input-grid" style="margin-top: 8px;">
             <div class="field">
                 <button onclick="exportPNG()" style="background: linear-gradient(135deg, #8b5cf6, #c084fc); color: white;">🖼️ Export PNG</button>
