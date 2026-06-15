@@ -454,7 +454,22 @@ function validateStairs() {
 }
 
 function deleteElement(idx) {
-    if(confirm('Are you sure you want to delete this room?')) { elements.splice(idx, 1); renderSidebar(); updateCanvas(); }
+    if(confirm('Are you sure you want to delete this room?')) { 
+        elements.splice(idx, 1); 
+        
+        // --- Safe Selection Management ---
+        // If we deleted the currently selected room, clear the selection
+        if (selectedElIndex === idx) {
+            selectedElIndex = -1;
+        } 
+        // If we deleted a room that came before the selected room in the array, shift the index down by 1
+        else if (selectedElIndex > idx) {
+            selectedElIndex--;
+        }
+
+        renderSidebar(); 
+        updateCanvas(); 
+    }
 }
 function cloneElement(idx) {
     const clone = JSON.parse(JSON.stringify(elements[idx]));
@@ -904,7 +919,7 @@ function updateCanvas() {
         const isColliding = smartMerge ? false : checkCollision(el, i);
         const overlapText = document.getElementById(`overlap-${i}`);
         if (overlapText) overlapText.innerText = isColliding ? ' (Overlap!)' : '';
-        
+
         const baseColor = colors[el.type] || '255,255,255';
         const strokeColor = isSelected ? '#ffffff' : (isColliding ? '#ef4444' : `rgb(${baseColor})`);
         const fillColor = isColliding ? 'rgba(239, 68, 68, 0.4)' : `rgba(${baseColor}, 0.2)`;
@@ -1032,11 +1047,23 @@ function updateCanvas() {
 function exportJSON() { const data = JSON.stringify({ elements, building: { w: document.getElementById('inW').value, h: document.getElementById('inH').value }, floors: parseInt(document.getElementById('b-floors').value) }); const a = document.createElement('a'); a.href = 'data:application/json,' + encodeURIComponent(data); a.download = 'design.json'; a.click(); }
 function importJSON(event) { const reader = new FileReader(); reader.onload = (e) => { const data = JSON.parse(e.target.result); elements = data.elements; elements.forEach(el => { if (el.floor === undefined) el.floor = 0; }); document.getElementById('inW').value = data.building.w || 600; document.getElementById('inH').value = data.building.h || 700; if(data.floors) { document.getElementById('b-floors').value = data.floors; renderFloorSelectors(); } setFloor(0); }; reader.readAsText(event.target.files[0]); }
 
-// Keyboard Nudge Control
+// Keyboard Control Engine (Nudge & Hotkeys)
 document.addEventListener('keydown', (e) => {
-    if (selectedElIndex === -1 || isDragging || document.activeElement.tagName === 'INPUT') return;
+    // 1. Ignore keystrokes if typing in an input field or not selecting anything
+    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+    if (selectedElIndex === -1 || isDragging) return;
+
+    // --- NEW: DELETE HOTKEY ---
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault(); // Stop Backspace from navigating the browser "Back"
+        deleteElement(selectedElIndex);
+        return; // Stop the rest of the function
+    }
+
+    // 2. Prevent moving locked rooms
     if (elements[selectedElIndex].locked) return;
 
+    // 3. Arrow Key Nudging
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
     }
@@ -1050,6 +1077,7 @@ document.addEventListener('keydown', (e) => {
 
     updateCanvas();
     
+    // Sync the sidebar sliders visually
     const rx = document.getElementById(`range-x-${selectedElIndex}`);
     const ry = document.getElementById(`range-y-${selectedElIndex}`);
     const nx = document.getElementById(`num-x-${selectedElIndex}`);
