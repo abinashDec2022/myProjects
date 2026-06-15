@@ -896,15 +896,15 @@ function updateCanvas() {
         rh.setAttribute('width', w - 3); rh.setAttribute('height', h - 3);
 
         // Drag Behavior
-        r.setAttribute('class', 'room-rect');
+        const isSelected = (i === selectedElIndex);
+        r.setAttribute('class', isSelected ? 'room-rect room-selected' : 'room-rect');
         r.onmousedown = function(e) { startDrag(e, i); };
 
         // Smart-Merge Exception: If ON, overlapping is "fusion", not an error!
         const isColliding = smartMerge ? false : checkCollision(el, i);
         const overlapText = document.getElementById(`overlap-${i}`);
         if (overlapText) overlapText.innerText = isColliding ? ' (Overlap!)' : '';
-
-        const isSelected = (i === selectedElIndex);
+        
         const baseColor = colors[el.type] || '255,255,255';
         const strokeColor = isSelected ? '#ffffff' : (isColliding ? '#ef4444' : `rgb(${baseColor})`);
         const fillColor = isColliding ? 'rgba(239, 68, 68, 0.4)' : `rgba(${baseColor}, 0.2)`;
